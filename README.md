@@ -1,47 +1,122 @@
-# LED闪烁例程
+这是一个为你修改后的 README.md，所有表格内容都已转换为列表形式，你可以直接复制使用。
 
-## 简介
+ART-Pi 2 智能门锁 (Smart Lock)
+简介
+本项目是基于 RT-Thread 实时操作系统在 ART-Pi 2 (STM32H7R7) 开发板上实现的智能门锁演示工程。 项目集成了 矩阵键盘输入、SPI 屏幕显示 和 舵机控制 功能，模拟了真实的智能门锁工作流程：开机自检、密码输入、密码验证以及自动开锁/关锁。
 
-本例程主要功能是让板载的 RGB-LED 中的蓝色 LED 不间断闪烁。这个例程也可以做为您的创作的基础工程。
+硬件环境
+开发板: RT-Thread ART-Pi 2 (STM32H7R7L8H6H)
 
-## 软件说明
+执行机构: SG90 舵机
 
-闪灯的源代码位于 `/projects/art_pi_blink_led/applications/main.c` 中。首先定义了一个宏 `LED_PIN` ，代表闪灯的 LED 引脚编号，然后与 `GPIO_LED_B`（**PO5**）对应：
+显示设备: 1.44/1.8寸 SPI TFT 彩屏 (ST7735 驱动)
 
-```
-#define LED_PIN GET_PIN(O, 5)
-```
+输入设备: 4x4 矩阵键盘
 
-在 main 函数中，将该引脚配置为输出模式，并在下面的 while 循环中，周期性（500毫秒）开关 LED。
+硬件接线说明 (基于扩展板 P1 排针)
+请务必按照以下定义连接硬件，否则程序无法正常运行。
 
-```
-int main(void)
-{
-    rt_uint32_t count = 1;
+1. 舵机 (SG90)
+信号线 (橙): 连接 PA2 (P1 排针 Pin 12) - TIM5_CH3 PWM
 
-    rt_pin_mode(LED_PIN, PIN_MODE_OUTPUT);
+VCC (红): 连接 5V (P1 排针 Pin 2 或 4)
 
-    while(count++)
-    {
-        rt_thread_mdelay(500);
-        rt_pin_write(LED_PIN, PIN_HIGH);
-        rt_thread_mdelay(500);
-        rt_pin_write(LED_PIN, PIN_LOW);
-    }
-    return RT_EOK;
-}
-```
+GND (棕): 连接 GND (P1 排针 Pin 6)
 
-## 运行
-### 编译&下载
+2. SPI 屏幕 (使用 SPI5)
+SCL / SCK: 连接 PF7 (P1 排针 Pin 23)
 
-编译完成后，将开发板的 ST-Link USB 口与 PC 机连接，然后将固件下载至开发板。
+SDA / MOSI: 连接 PM13 (P1 排针 Pin 19)
 
-### 运行效果
+RES / RST: 连接 PE12 (P1 排针 Pin 31)
 
-正常运行后，蓝色 LED 会周期性闪烁。
+DC / RS: 连接 PE13 (P1 排针 Pin 29)
 
-## 注意事项
+CS / NSS: 连接 PF6 (P1 排针 Pin 24)
 
-如果想要修改`LED_PIN` 宏定义，可以通过 GET_PIN 来修改。
+BLK: 连接 PD13 (P1 排针 Pin 33)
 
+VCC: 连接 3.3V (P1 排针 Pin 1)
+
+GND: 连接 GND (P1 排针 Pin 9)
+
+3. 矩阵键盘
+R1 (行1): 连接 PF13 (P1 排针 Pin 8) - 输出
+
+R2 (行2): 连接 PF12 (P1 排针 Pin 10) - 输出
+
+R3 (行3): 连接 PC3 (P1 排针 Pin 11) - 输出
+
+R4 (行4): 连接 PC2 (P1 排针 Pin 13) - 输出
+
+C1 (列1): 连接 PD3 (P1 排针 Pin 15) - 输入 (上拉)
+
+C2 (列2): 连接 PB1 (P1 排针 Pin 16) - 输入 (上拉)
+
+C3 (列3): 连接 PB2 (P1 排针 Pin 18) - 输入 (上拉)
+
+C4 (列4): 连接 PF4 (P1 排针 Pin 22) - 输入 (上拉)
+
+软件说明
+目录结构
+applications/main.c: 业务逻辑主入口，包含线程创建和主控逻辑。
+
+Driver/: 驱动模块文件夹
+
+lcd.c/h: SPI 屏幕驱动 (基于 ST7735)。
+
+key.c/h: 矩阵键盘扫描驱动。
+
+timer.c/h: 舵机 PWM 控制驱动。
+
+font_ascii_16x8.h: 汉字与字符字库。
+
+核心逻辑
+系统启动后会创建两个核心线程：
+
+key_logic (按键逻辑线程):
+
+负责扫描矩阵键盘。
+
+处理密码输入缓存。
+
+进行密码比对（默认密码：123456）。
+
+控制舵机动作（开锁/关锁）。
+
+lcd_show (屏幕刷新线程):
+
+负责 UI 界面的绘制。
+
+实时显示输入的掩码符 *。
+
+显示开锁/关锁的状态提示与图标。
+
+关键配置
+PWM: 使用 TIM5 Channel 3 (PA2)，周期 20ms。
+
+SPI: 使用 SPI5 总线驱动屏幕。
+
+运行与操作
+编译下载: 将工程编译并下载至 ART-Pi 2 开发板。
+
+开机: 屏幕显示红色进度条开机动画，随后显示 Logo，最后进入密码输入界面。
+
+操作说明:
+
+数字键 (0-9): 输入密码。
+
+功能键 (S13): 清除输入 (Reset)。
+
+确认键 (S15): 确认密码。
+
+结果:
+
+密码正确: 屏幕显示 "OPEN!" 及开锁图标，舵机转动至 90度（开锁），3秒后自动回正（关锁）。
+
+密码错误: 屏幕显示 "ERROR!" 及错误图标，舵机保持不动。
+
+注意事项
+请确保 Driver 文件夹已添加到编译器的 "Include Paths" 中，否则会报错找不到头文件。
+
+舵机供电建议使用 5V，接线时注意电源正负极，防止烧毁。
